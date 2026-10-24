@@ -1,0 +1,111 @@
+"""Offline contract tests for the Teams command line interface."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Callable
+from typing import Any
+
+from click.testing import CliRunner
+
+from teams_mcp.cli import cli
+
+
+class FakeTeamsClient:
+    def __init__(self) -> None:
+        self.read_limits: list[int] = []
+        self.send_calls: list[dict[str, Any]] = []
+
+    def read_recent_messages(self, limit: int = 10) -> list[dict[str, str]]:
+        self.read_limits.append(limit)
+        return [{"id": "chat-1", "topic": "Example chat"}]
+
+    def send_message(self, **kwargs: Any) -> dict[str, str]:
+        self.send_calls.append(kwargs)
+        return {"status": "sent"}
+
+
+def _factory_for(client: FakeTeamsClient) -> Callable[[], FakeTeamsClient]:
+    return lambda: client
+
+
+def test_root_help_aliases_list_commands_without_creating_a_client() -> None:
+    client = FakeTeamsClient()
+    runner = CliRunner()
+
+    for option in ("-h", "--help"):
+        result = runner.invoke(cli, [option], obj={"client_factory": _factory_for(client)})
+
+        assert result.exit_code == 0
+        assert "read" in result.output
+        assert "send" in result.output
+
+    assert client.read_limits == []
+    assert client.send_calls == []
+
+
+def test_root_without_command_prints_help() -> None:
+    client = FakeTeamsClient()
+    result = CliRunner().invoke(cli, [], obj={"client_factory": _factory_for(client)})
+
+    assert "read" in result.output
+    assert "send" in result.output
+    assert client.read_limits == []
+    assert client.send_calls == []
+
+
+def test_nested_command_help_is_read_only() -> None:
+    client = FakeTeamsClient()
+    runner = CliRunner()
+
+    for command in ("read", "send"):
+        result = runner.invoke(
+            cli, [command, "-h"], obj={"client_factory": _factory_for(client)}
+        )
+        assert result.exit_code == 0
+
+    assert client.read_limits == []
+    assert client.send_calls == []
+
+
+def test_version_option_is_read_only() -> None:
+    client = FakeTeamsClient()
+    runner = CliRunner()
+
+    for option in ("-V", "--version"):
+        result = runner.invoke(cli, [option], obj={"client_factory": _factory_for(client)})
+        assert result.exit_code == 0
+        assert "teams" in result.output.lower()
+
+    assert client.read_limits == []
+    assert client.send_calls == []
+
+
+def test_read_json_uses_injected_client_and_never_sends(monkeypatch: Any) -> None:
+    monkeypatch.delenv("TEAMS_ACCESS_TOKEN", raising=False)
+    client = FakeTeamsClient()
+
+    result = CliRunner().invoke(
+        cli,
+        ["read", "--limit", "4", "-j"],
+        obj={"client_factory": _factory_for(client)},
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output) == [{"id": "chat-1", "topic": "Example chat"}]
+    assert client.read_limits == [4]
+    assert client.send_calls == []
+
+
+def test_invalid_read_limit_is_rejected_before_client_creation() -> None:
+    client = FakeTeamsClient()
+
+    result = CliRunner().invoke(
+        cli,
+        ["read", "--limit", "0"],
+        obj={"client_factory": _factory_for(client)},
+    )
+
+    assert result.exit_code != 0
+    assert client.read_limits == []
+    assert client.send_calls == []
