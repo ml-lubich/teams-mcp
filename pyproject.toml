@@ -17,6 +17,7 @@ dependencies = [
 dev = [
   "build>=1.2",
   "pytest>=8.0",
+  "pytest-cov>=5.0",
 ]
 
 [project.scripts]
@@ -27,3 +28,10 @@ include = ["teams_mcp*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=teams_mcp --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["teams_mcp"]
+
+[tool.coverage.report]
+fail_under = 80

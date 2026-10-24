@@ -42,5 +42,6 @@ uv sync --extra dev
 uv run pytest -q
 ```
 
-CLI tests use a fake client. They must not read credentials, contact Graph,
-launch Teams, or send messages.
+The pytest configuration measures `teams_mcp` and fails below 80% aggregate line
+coverage. CLI tests use a fake client. They must not read credentials, contact
+Graph, launch Teams, or send messages.
