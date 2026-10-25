@@ -18,6 +18,7 @@ class TeamsClient:
         
         Focuses the chat, sets the message, and sends it.
         """
+        escaped_message = message.replace('"', '\\"')
         script = f'''
         tell application "System Events"
             set teamsProc to first process whose name contains "Teams" or bundle identifier contains "teams"
@@ -26,7 +27,7 @@ class TeamsClient:
             end if
             set frontmost of teamsProc to true
             delay 0.3
-            keystroke "{message.replace('"', '\\"')}"
+            keystroke "{escaped_message}"
             delay 0.2
             keystroke return
             return "SUCCESS"
