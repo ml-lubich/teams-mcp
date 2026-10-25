@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from teams_mcp import __version__
+from teams_mcp.agent import build_schema
 from teams_mcp.client import TeamsClient
 
 console = Console()
@@ -131,6 +132,17 @@ def read_cmd(ctx: click.Context, limit: int, as_json: bool) -> None:
             )
 
     console.print(table)
+
+
+@cli.group("agent", no_args_is_help=True)
+def agent_group() -> None:
+    """Machine-readable command information for agent integrations."""
+
+
+@agent_group.command("schema")
+def agent_schema() -> None:
+    """Print the complete CLI command schema as JSON."""
+    click.echo(json.dumps(build_schema(cli), ensure_ascii=False, separators=(",", ":")))
 
 
 def main() -> None:

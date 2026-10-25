@@ -58,9 +58,9 @@ def test_nested_command_help_is_read_only() -> None:
     client = FakeTeamsClient()
     runner = CliRunner()
 
-    for command in ("read", "send"):
+    for command in (["read"], ["send"], ["agent"], ["agent", "schema"]):
         result = runner.invoke(
-            cli, [command, "-h"], obj={"client_factory": _factory_for(client)}
+            cli, [*command, "-h"], obj={"client_factory": _factory_for(client)}
         )
         assert result.exit_code == 0
 
@@ -163,3 +163,21 @@ def test_invalid_read_limit_is_rejected_before_client_creation() -> None:
     assert result.exit_code != 0
     assert client.read_limits == []
     assert client.send_calls == []
+
+
+def test_agent_schema_is_json_and_describes_cli_contract() -> None:
+    result = CliRunner().invoke(cli, ["agent", "schema"])
+
+    assert result.exit_code == 0
+    schema = json.loads(result.output)
+    assert schema["tool"] == "teams"
+    assert {command["name"] for command in schema["commands"]} == {
+        "send",
+        "read",
+        "agent schema",
+    }
+    send = next(command for command in schema["commands"] if command["name"] == "send")
+    params = {param["name"]: param for param in send["params"]}
+    assert params["message"]["required"] is True
+    assert "--chat-id" in params["chat_id"]["flags"]
+    assert {param["name"] for param in schema["global_params"]} == {"version"}

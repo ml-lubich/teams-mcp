@@ -12,6 +12,8 @@ teams --help
 teams --version
 ```
 
+For a local checkout, install the package with `uv tool install .`.
+
 Build a wheel and source archive with:
 
 ```bash
@@ -24,7 +26,11 @@ uv build
 teams read --limit 5
 teams read --limit 5 --json
 teams send --help
+teams agent schema
 ```
+
+`teams agent schema` prints the command, option, and version contract as JSON.
+This package currently exposes a CLI; it does not run an MCP server.
 
 `read` uses the Microsoft Graph API when `TEAMS_ACCESS_TOKEN` is set. Without
 that token, it prints local integration guidance and does not open the Teams
@@ -38,7 +44,7 @@ can deliver a real message; inspect its help before use.
 ## Development
 
 ```bash
-uv sync --extra dev
+uv sync --locked --extra dev
 uv run pytest -q
 ```
 
